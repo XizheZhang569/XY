@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>课堂精灵 - 学生状态评估系统</title>
+    <style>
+        /* 全局样式配置 */
+        :root {
+            --primary: #2C7DDC;      /* 主蓝色 */
+            --primary-light: #EAF5FF; /* 浅蓝背景 */
+            --secondary: #1A5BAF;    /* 深蓝按钮 */
+            --accent: #FFC107;       /* 评分黄色 */
+            --text-dark: #333333;    /* 主要文字 */
+            --text-light: #666666;   /* 次要文字 */
+            --border: #E0E7FF;       /* 边框色 */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            letter-spacing: 0.3px; /* 窄字距 */
+            line-height: 1.4;     /* 紧凑行距 */
+        }
+
+        body {
+            background-color: var(--primary-light);
+            color: var(--text-dark);
+            padding: 15px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 中央竖排水印 */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.08; /* 半透明效果 */
+            font-size: 50px;
+            font-weight: bold;
+            color: #000;
+            writing-mode: vertical-rl; /* 竖排文字 */
+            text-transform: uppercase; /* 大写显示 */
+            letter-spacing: 10px; /* 字间距 */
+            user-select: none;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* 卡片组件样式 */
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            padding: 18px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        /* 头部样式 */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            margin-right: 12px;
+            object-fit: contain;
+            background-color: white;
+            padding: 5px;
+        }
+
+        .app-title {
+            font-size: 19px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .app-subtitle {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* 评语参考样式 */
+        .comment-suggestions {
+            margin: 10px 0;
+        }
+
+        .suggestion-label {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+
+        .suggestion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .suggestion-btn {
+            padding: 6px 12px;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .suggestion-btn:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* 问题区域样式 */
+        .question-section {
+            margin: 20px 0;
+        }
+
+        .question-title {
+            font-size: 16px;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .question-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 13px;
+            margin-right: 8px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option {
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .option:hover {
+            background-color: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .option.selected {
+            background-color: var(--primary-light);
+            border-color: var(--primary);
+            font-weight: 500;
+        }
+
+        .option input {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+        }
+
+        /* 按钮样式 */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* 结果页样式 */
+        .result-header {
+            text-align: center;
+            padding: 10px 0 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .result-title {
+            font-size: 18px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .score-display {
+            font-size: 40px;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 5px 0;
+            letter-spacing: 1px;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        /* 结果内容样式 */
+        .result-section {
+            margin: 20px 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title i {
+            font-style: normal;
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 22px;
+            font-size: 12px;
+        }
+
+        .info-list {
+            padding-left: 5px;
+        }
+
+        .info-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .info-item::before {
+            content: "•";
+            color: var(--primary);
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .dimension-scores {
+            background-color: var(--primary-light);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        .dimension-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 14px;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .dimension-item:last-child {
+            border-bottom: none;
+        }
+
+        .dimension-name {
+            color: var(--text-dark);
+        }
+
+        .dimension-score {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* 反馈区域 */
+        .feedback-area {
+            margin-top: 15px;
+        }
+
+        .feedback-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .feedback-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* 隐藏页面 */
+        .hidden {
+            display: none;
+        }
+
+        /* 适配小屏幕 */
+        @media (max-width: 360px) {
+            .app-title {
+                font-size: 17px;
+            }
+            .score-display {
+                font-size: 36px;
+            }
+            .btn {
+                font-size: 15px;
+                padding: 11px;
+            }
+            .result-title {
+                font-size: 16px;
+            }
+            .suggestion-btn {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+            .watermark {
+                font-size: 40px;
+                letter-spacing: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 中央竖排水印 -->
+    <div class="watermark">成都学苑教育</div>
+    
+    <div class="container">
+        <!-- 输入页面 -->
+        <div id="input-page" class="card">
+            <div class="header">
+                <!-- 替换为你的LOGO路径 -->
+                <img src="logo.png" alt="课堂精灵LOGO" class="logo">
+                <div>
+                    <div class="app-title">课堂精灵 - 学生状态评估</div>
+                    <div class="app-subtitle">精准分析 · 科学提升</div>
+                </div>
+            </div>
+
+            <!-- 学生基本信息 -->
+            <div class="form-group">
+                <label class="form-label" for="student-name">学生姓名</label>
+                <input type="text" id="student-name" class="form-control" placeholder="请输入学生姓名" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="grade">年级</label>
+                <select id="grade" class="form-control" required>
+                    <option value="">请选择年级</option>
+                    <option value="1">一年级</option>
+                    <option value="2">二年级</option>
+                    <option value="3">三年级</option>
+                    <option value="4">四年级</option>
+                    <option value="5">五年级</option>
+                    <option value="6">六年级</option>
+                    <option value="7">初一</option>
+                    <option value="8">初二</option>
+                    <option value="9">初三</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="subject">课程科目</label>
+                <select id="subject" class="form-control" required>
+                    <option value="">请选择科目</option>
+                    <option value="语文">语文</option>
+                    <option value="数学">数学</option>
+                    <option value="英语">英语</option>
+                    <option value="物理">物理</option>
+                    <option value="化学">化学</option>
+                    <option value="生物">生物</option>
+                    <option value="历史">历史</option>
+                    <option value="地理">地理</option>
+                    <option value="政治">政治</option>
+                </select>
+            </div>
+
+            <!-- 评估维度1：知识掌握度 -->
+            <div class="question-section">
+                <div class="question-title">
+                    <span class="question-number">1</span>知识掌握度
+                </div>
+                <div class="options">
+                    <label class="option">
+                        <input type="radio" name="knowledge" value="0.8" required>
+                        A) 能听懂部分内容，需老师重复讲解关键点
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="knowledge" value="1.2">
+                        B) 理解大部分内容，细节需课后复习
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="knowledge" value="1.6">
+                        C) 较好理解内容，能独立完成练习
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="knowledge" value="2.0">
+                        D) 完全理解并能举一反三
+                    </label>
+                </div>
+            </div>
+
+            <!-- 评估维度2：课堂互动 -->
+            <div class="question-section">
+                <div class="question-title">
+                    <span class="question-number">2</span>课堂互动
+                </div>
+                <div class="options">
+                    <label class="option">
+                        <input type="radio" name="interaction" value="0.8" required>
+                        A) 偶尔被点名回答，不主动参与
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="interaction" value="1.2">
+                        B) 偶尔主动回答简单问题
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="interaction" value="1.6">
+                        C) 经常主动回答，参与小组讨论
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="interaction" value="2.0">
+                        D) 积极提问，带动课堂氛围
+                    </label>
+                </div>
+            </div>
+
+            <!-- 评估维度3：注意力 -->
+            <div class="question-section">
+                <div class="question-title">
+                    <span class="question-number">3</span>注意力
+                </div>
+                <div class="options">
+                    <label class="option">
+                        <input type="radio" name="attention" value="0.8" required>
+                        A) 偶尔走神（1-2次），能快速回归
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="attention" value="1.2">
+                        B) 大部分时间专注，极少分心
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="attention" value="1.6">
+                        C) 基本全程专注，不受干扰
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="attention" value="2.0">
+                        D) 高度专注，紧跟教学节奏
+                    </label>
+                </div>
+            </div>
+
+            <!-- 评估维度4：做题能力 -->
+            <div class="question-section">
+                <div class="question-title">
+                    <span class="question-number">4</span>做题能力
+                </div>
+                <div class="options">
+                    <label class="option">
+                        <input type="radio" name="problem-solving" value="0.8" required>
+                        A) 能完成基础题，中等题需提示
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="problem-solving" value="1.2">
+                        B) 能独立完成大部分题目
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="problem-solving" value="1.6">
+                        C) 解题思路清晰，错误率低
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="problem-solving" value="2.0">
+                        D) 能灵活解题，方法多样
+                    </label>
+                </div>
+            </div>
+
+            <!-- 评估维度5：做题速度 -->
+            <div class="question-section">
+                <div class="question-title">
+                    <span class="question-number">5</span>做题速度
+                </div>
+                <div class="options">
+                    <label class="option">
+                        <input type="radio" name="speed" value="0.8" required>
+                        A) 完成速度一般，能按时交卷
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="speed" value="1.2">
+                        B) 完成速度较快，提前少量时间
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="speed" value="1.6">
+                        C) 完成速度快，提前较多时间
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="speed" value="2.0">
+                        D) 完成速度极快，准确率高
+                    </label>
+                </div>
+            </div>
+
+            <!-- 教师评语 -->
+            <div class="form-group">
+                <label class="form-label" for="teacher-comment">教师评语</label>
+                <div class="comment-suggestions">
+                    <div class="suggestion-label">评语参考：</div>
+                    <div class="suggestion-buttons">
+                        <button class="suggestion-btn" data-comment="该生活泼开朗，课堂参与度高，希望继续保持积极态度。">参考1</button>
+                        <button class="suggestion-btn" data-comment="学生基础知识扎实，但课堂互动不够积极，建议多主动表达想法。">参考2</button>
+                        <button class="suggestion-btn" data-comment="思维敏捷，解题能力强，若能提高做题速度会更出色。">参考3</button>
+                        <button class="suggestion-btn" data-comment="学习态度认真，注意力集中，需加强知识的灵活运用能力。">参考4</button>
+                        <button class="suggestion-btn" data-comment="课堂表现有进步，特别是在互动环节，继续努力！">参考5</button>
+                    </div>
+                </div>
+                <textarea id="teacher-comment" class="form-control" rows="3" placeholder="请输入对学生的个性化评语或指导建议..."></textarea>
+            </div>
+
+            <button class="btn" id="submit-btn">
+                <span>生成评估报告</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- 结果页面 -->
+        <div id="result-page" class="card hidden">
+            <div class="result-header">
+                <div class="result-title">学生课堂状态评估报告</div>
+                <div class="score-display" id="total-score">0.0</div>
+                <div class="score-label">总分 / 10分</div>
+            </div>
+
+            <!-- 学生信息 -->
+            <div class="result-section">
+                <div class="section-title"><i>①</i>学生信息</div>
+                <div class="info-list">
+                    <div class="info-item">姓名：<span id="report-name">——</span></div>
+                    <div class="info-item">年级：<span id="report-grade">——</span></div>
+                    <div class="info-item">科目：<span id="report-subject">——</span></div>
+                    <div class="info-item">日期：<span id="report-date">——</span></div>
+                </div>
+            </div>
+
+            <!-- 维度得分 -->
+            <div class="result-section">
+                <div class="section-title"><i>②</i>各维度表现</div>
+                <div class="dimension-scores">
+                    <div class="dimension-item">
+                        <div class="dimension-name">知识掌握度</div>
+                        <div class="dimension-score" id="score-knowledge">0.0 / 2.0</div>
+                    </div>
+                    <div class="dimension-item">
+                        <div class="dimension-name">课堂互动</div>
+                        <div class="dimension-score" id="score-interaction">0.0 / 2.0</div>
+                    </div>
+                    <div class="dimension-item">
+                        <div class="dimension-name">注意力</div>
+                        <div class="dimension-score" id="score-attention">0.0 / 2.0</div>
+                    </div>
+                    <div class="dimension-item">
+                        <div class="dimension-name">做题能力</div>
+                        <div class="dimension-score" id="score-problem-solving">0.0 / 2.0</div>
+                    </div>
+                    <div class="dimension-item">
+                        <div class="dimension-name">做题速度</div>
+                        <div class="dimension-score" id="score-speed">0.0 / 2.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 优势表现 -->
+            <div class="result-section">
+                <div class="section-title"><i>③</i>优势表现</div>
+                <div class="info-list" id="strengths-list">
+                    <div class="info-item">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 待改进问题 -->
+            <div class="result-section">
+                <div class="section-title"><i>④</i>待改进方向</div>
+                <div class="info-list" id="weaknesses-list">
+                    <div class="info-item">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 提升建议 -->
+            <div class="result-section">
+                <div class="section-title"><i>⑤</i>针对性提升方案</div>
+                <div class="info-list" id="suggestions-list">
+                    <div class="info-item">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 教师反馈 -->
+            <div class="result-section feedback-area">
+                <div class="section-title"><i>⑥</i>教师评语</div>
+                <div id="report-comment" class="info-list">
+                    <div class="info-item">——</div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn" id="back-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m12 19-7-7 7-7"></path>
+                        <path d="M19 12H5"></path>
+                    </svg>
+                    <span>重新评估</span>
+                </button>
+                <button class="btn" id="save-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    <span>保存报告</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 丰富的建议库（按维度和等级分类）
+        const suggestionLibrary = {
+            knowledge: {
+                basic: [
+                    "每天课后用5分钟画知识思维导图，梳理核心概念",
+                    "准备'疑问本'，记录课堂不懂的地方，及时请教老师",
+                    "将重点内容制成卡片，利用碎片时间复习",
+                    "每周做1次知识小结，对比课本目录查漏补缺"
+                ],
+                intermediate: [
+                    "尝试用自己的话复述课堂重点，检验理解程度",
+                    "做'错题分类本'，按错误类型整理并定期回顾",
+                    "针对薄弱章节，找2-3道典型题专项练习",
+                    "和同学互相提问重点内容，强化记忆效果"
+                ],
+                advanced: [
+                    "阅读相关拓展资料，加深对知识点的理解",
+                    "尝试用多种方法解同一道题，拓展解题思路",
+                    "预测考试可能出现的考点，提前准备解题策略",
+                    "将新知识与旧知识建立联系，形成知识网络"
+                ]
+            },
+            interaction: {
+                basic: [
+                    "课前准备1个简单问题，课堂上主动举手提问",
+                    "从小组讨论开始，尝试表达自己的想法",
+                    "老师提问时，即使不确定也要尝试回答",
+                    "记录课堂上其他同学的精彩观点，学习表达技巧"
+                ],
+                intermediate: [
+                    "课堂上不仅回答'是什么'，还要解释'为什么'",
+                    "主动参与课堂辩论，清晰表达自己的观点",
+                    "尝试总结他人发言的核心内容，再补充自己的看法",
+                    "课后和同学讨论课堂难点，锻炼表达能力"
+                ],
+                advanced: [
+                    "提前预习并准备2-3个拓展问题，引导课堂深入讨论",
+                    "尝试在小组中担任组织者，引导大家全面思考",
+                    "用实例或生活现象解释课本知识，让表达更生动",
+                    "课堂上发现问题时，提出自己的解决方案建议"
+                ]
+            },
+            attention: {
+                basic: [
+                    "请求老师安排前排座位，减少外界干扰",
+                    "每10分钟做一次简单笔记，保持大脑活跃",
+                    "课前清理桌面，只留必要的文具和课本",
+                    "发现走神时，立刻在笔记上画符号提醒自己"
+                ],
+                intermediate: [
+                    "使用'番茄工作法'：专注15分钟休息2分钟",
+                    "眼神跟随老师移动，主动捕捉讲解重点",
+                    "课堂上积极思考'老师接下来会讲什么'",
+                    "记录自己的专注时间段，逐步延长专注时长"
+                ],
+                advanced: [
+                    "练习'主动倾听'：边听边提炼核心观点",
+                    "预判老师的提问方向，提前思考答案",
+                    "将新知识与已有经验快速建立联系",
+                    "课堂上发现疑问时，先记录下来不打断思路"
+                ]
+            },
+            problem_solving: {
+                basic: [
+                    "做题前先通读题目3遍，圈出关键词",
+                    "从简单题开始，每天坚持做5道基础题",
+                    "学习规范的解题步骤，养成良好习惯",
+                    "整理'解题步骤模板'，同类题套用模板练习"
+                ],
+                intermediate: [
+                    "做题时先写思路框架，再填充细节",
+                    "一道题做不出来时，尝试换一种思路",
+                    "总结常见题型的解题技巧，形成方法库",
+                    "做完题后反思：这道题考了什么知识点"
+                ],
+                advanced: [
+                    "尝试用多种方法解同一道题，比较优劣",
+                    "做'一题多解'练习，拓展思维广度",
+                    "分析错题时，明确错误类型和原因",
+                    "挑战综合性题目，锻炼知识迁移能力"
+                ]
+            },
+            speed: {
+                basic: [
+                    "设定每道题的时间上限，逐步提高效率",
+                    "日常练习时使用计时器，培养时间意识",
+                    "总结快速读题技巧，抓住关键信息",
+                    "提前熟悉常见题型，减少审题时间"
+                ],
+                intermediate: [
+                    "制定'先易后难'的做题策略，优化时间分配",
+                    "练习心算和快速计算技巧（数学科目）",
+                    "整理常用公式和结论，减少推导时间",
+                    "分析自己的耗时点，针对性训练提速"
+                ],
+                advanced: [
+                    "练习'批量处理'同类题，提高解题流畅度",
+                    "总结快速检验答案的技巧，提高准确率",
+                    "模拟考试环境做题，适应时间压力",
+                    "根据题目分值分配时间，提高得分效率"
+                ]
+            }
+        };
+
+        // DOM元素
+        const inputPage = document.getElementById('input-page');
+        const resultPage = document.getElementById('result-page');
+        const submitBtn = document.getElementById('submit-btn');
+        const backBtn = document.getElementById('back-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const commentTextarea = document.getElementById('teacher-comment');
+        const suggestionButtons = document.querySelectorAll('.suggestion-btn');
+
+        // 评语参考按钮点击事件
+        suggestionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const comment = btn.getAttribute('data-comment');
+                commentTextarea.value = comment;
+            });
+        });
+
+        // 提交评估
+        submitBtn.addEventListener('click', () => {
+            // 表单验证
+            if (!validateForm()) return;
+
+            // 收集数据
+            const formData = {
+                name: document.getElementById('student-name').value.trim(),
+                grade: document.getElementById('grade').value,
+                subject: document.getElementById('subject').value,
+                knowledge: parseFloat(document.querySelector('input[name="knowledge"]:checked').value),
+                interaction: parseFloat(document.querySelector('input[name="interaction"]:checked').value),
+                attention: parseFloat(document.querySelector('input[name="attention"]:checked').value),
+                problemSolving: parseFloat(document.querySelector('input[name="problem-solving"]:checked').value),
+                speed: parseFloat(document.querySelector('input[name="speed"]:checked').value),
+                teacherComment: commentTextarea.value.trim()
+            };
+
+            // 生成报告
+            generateReport(formData);
+
+            // 切换页面
+            inputPage.classList.add('hidden');
+            resultPage.classList.remove('hidden');
+            window.scrollTo(0, 0);
+        });
+
+        // 返回重新评估
+        backBtn.addEventListener('click', () => {
+            resultPage.classList.add('hidden');
+            inputPage.classList.remove('hidden');
+            // 重置表单
+            document.getElementById('student-name').value = '';
+            document.getElementById('grade').value = '';
+            document.getElementById('subject').value = '';
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.checked = false;
+                radio.closest('.option').classList.remove('selected');
+            });
+            commentTextarea.value = '';
+            window.scrollTo(0, 0);
+        });
+
+        // 保存报告
+        saveBtn.addEventListener('click', () => {
+            alert('报告已保存成功！（实际应用中可保存到本地或云端）');
+        });
+
+        // 表单验证
+        function validateForm() {
+            const name = document.getElementById('student-name').value.trim();
+            const grade = document.getElementById('grade').value;
+            const subject = document.getElementById('subject').value;
+            
+            if (!name) {
+                alert('请输入学生姓名');
+                return false;
+            }
+            if (!grade) {
+                alert('请选择年级');
+                return false;
+            }
+            if (!subject) {
+                alert('请选择科目');
+                return false;
+            }
+            
+            // 验证所有维度都已选择
+            const dimensions = ['knowledge', 'interaction', 'attention', 'problem-solving', 'speed'];
+            for (const dim of dimensions) {
+                if (!document.querySelector(`input[name="${dim}"]:checked`)) {
+                    alert('请完成所有评估维度的选择');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // 生成评估报告
+        function generateReport(data) {
+            // 计算总分
+            const totalScore = (data.knowledge + data.interaction + data.attention + data.problemSolving + data.speed).toFixed(1);
+            
+            // 更新学生信息
+            document.getElementById('report-name').textContent = data.name;
+            document.getElementById('report-grade').textContent = getGradeText(data.grade);
+            document.getElementById('report-subject').textContent = data.subject;
+            document.getElementById('report-date').textContent = new Date().toLocaleDateString();
+            
+            // 更新分数显示
+            document.getElementById('total-score').textContent = totalScore;
+            document.getElementById('score-knowledge').textContent = `${data.knowledge.toFixed(1)} / 2.0`;
+            document.getElementById('score-interaction').textContent = `${data.interaction.toFixed(1)} / 2.0`;
+            document.getElementById('score-attention').textContent = `${data.attention.toFixed(1)} / 2.0`;
+            document.getElementById('score-problem-solving').textContent = `${data.problemSolving.toFixed(1)} / 2.0`;
+            document.getElementById('score-speed').textContent = `${data.speed.toFixed(1)} / 2.0`;
+            
+            // 显示教师评语
+            const reportComment = document.getElementById('report-comment');
+            reportComment.innerHTML = '';
+            const commentItem = document.createElement('div');
+            commentItem.className = 'info-item';
+            commentItem.textContent = data.teacherComment || '未填写评语';
+            reportComment.appendChild(commentItem);
+            
+            // 分析优势和不足
+            const analysis = analyzePerformance(data);
+            renderList('strengths-list', analysis.strengths);
+            renderList('weaknesses-list', analysis.weaknesses);
+            
+            // 生成个性化建议
+            const suggestions = generateSuggestions(data);
+            renderList('suggestions-list', suggestions);
+        }
+
+        // 分析表现（优势和不足）
+        function analyzePerformance(data) {
+            const strengths = [];
+            const weaknesses = [];
+            const dimensions = [
+                { name: '知识掌握度', score: data.knowledge, key: 'knowledge' },
+                { name: '课堂互动', score: data.interaction, key: 'interaction' },
+                { name: '注意力', score: data.attention, key: 'attention' },
+                { name: '做题能力', score: data.problemSolving, key: 'problemSolving' },
+                { name: '做题速度', score: data.speed, key: 'speed' }
+            ];
+            
+            dimensions.forEach(dim => {
+                if (dim.score >= 1.6) {
+                    strengths.push(`${dim.name}表现优异，保持良好状态`);
+                } else if (dim.score <= 1.0) {
+                    weaknesses.push(`${dim.name}有待提高，需加强训练`);
+                }
+            });
+            
+            // 确保内容不为空
+            if (strengths.length === 0) strengths.push('整体表现稳定，基础扎实');
+            if (weaknesses.length === 0) weaknesses.push('目前无明显短板，可挑战更高难度内容');
+            
+            return { strengths, weaknesses };
+        }
+
+        // 生成个性化建议
+        function generateSuggestions(data) {
+            const suggestions = [];
+            const dimensions = [
+                { score: data.knowledge, key: 'knowledge' },
+                { score: data.interaction, key: 'interaction' },
+                { score: data.attention, key: 'attention' },
+                { score: data.problemSolving, key: 'problem_solving' },
+                { score: data.speed, key: 'speed' }
+            ];
+            
+            // 为每个维度生成建议
+            dimensions.forEach(dim => {
+                let level, suggestionsForDim;
+                
+                // 确定等级
+                if (dim.score <= 1.0) {
+                    level = 'basic';
+                } else if (dim.score <= 1.5) {
+                    level = 'intermediate';
+                } else {
+                    level = 'advanced';
+                }
+                
+                // 获取对应建议并随机选择2条
+                suggestionsForDim = suggestionLibrary[dim.key][level];
+                const shuffled = [...suggestionsForDim].sort(() => 0.5 - Math.random());
+                suggestions.push(...shuffled.slice(0, 2));
+            });
+            
+            // 去重并限制总数
+            return [...new Set(suggestions)].slice(0, 6);
+        }
+
+        // 渲染列表内容
+        function renderList(elementId, items) {
+            const listElement = document.getElementById(elementId);
+            listElement.innerHTML = ''; // 清空现有内容
+            items.forEach(item => {
+                const li = document.createElement('div');
+                li.className = 'info-item';
+                li.textContent = item;
+                listElement.appendChild(li);
+            });
+        }
+
+        // 年级数字转文字
+        function getGradeText(gradeNum) {
+            const gradeMap = {
+                '1': '一年级', '2': '二年级', '3': '三年级',
+                '4': '四年级', '5': '五年级', '6': '六年级',
+                '7': '初一', '8': '初二', '9': '初三'
+            };
+            return gradeMap[gradeNum] || gradeNum;
+        }
+
+        // 选项点击效果
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', function() {
+                // 清除同组其他选项的选中状态
+                const name = this.querySelector('input').name;
+                document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+                    input.closest('.option').classList.remove('selected');
+                });
+                // 设置当前选项为选中状态
+                this.classList.add('selected');
+            });
+        });
+    </script>
+</body>
+</html>
+    
